@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>أحاديث طبية</title>
+  <link href="https://fonts.googleapis.com/css2?family=Kufam&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Kufam', sans-serif;
+      direction: rtl;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 20px;
+      color: #2c3e50;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: 700;
+      color: #34495e;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+    input, select {
+      padding: 10px 15px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      min-width: 160px;
+    }
+    button {
+      background-color: #3498db;
+      border: none;
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #hadithList {
+      display: grid;
+      grid-template-columns: repeat(auto-fill,minmax(320px,1fr));
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .hadith {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .category, .madhhab, .narrator-tag {
+      display: inline-block;
+      margin-bottom: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 5px 12px;
+      border-radius: 25px;
+      color: white;
+      margin-left: 10px;
+    }
+    .category { background: #3498db; }
+    .madhhab { background: #e67e22; }
+    .narrator-tag { background: #16a085; }
+    .text {
+      font-size: 18px;
+      line-height: 1.5;
+      margin-bottom: 15px;
+      flex-grow: 1;
+    }
+    .source {
+      font-size: 13px;
+      color: #888;
+      text-align: left;
+      margin-bottom: 12px;
+    }
+    .fav-btn {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 22px;
+      color: #bbb;
+    }
+    .fav-btn.favorited {
+      color: #e74c3c;
+    }
+    @media (max-width: 600px) {
+      input, select {
+        width: 100%;
+        max-width: 300px;
+      }
+      #hadithList {
+        grid-template-columns: 1fr;
+      }
+      .controls {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<h1>أحاديث طبية</h1>
+
+<div class="controls">
+  <input type="text" id="searchInput" placeholder="ابحث في الأحاديث..." />
+  <select id="categoryFilter">
+    <option value="">كل الفئات</option>
+    <option value="الوقاية والصحة">الوقاية والصحة</option>
+    <option value="الطب والعلاج">الطب و العلاج</option>
+  </select>
+  <select id="madhhabFilter">
+    <option value="">كل المذاهب</option>
+    <option value="سني">سني</option>
+    <option value="شيعي">شيعي</option>
+  </select>
+  <select id="narratorFilter">
+    <option value="">كل القائلين</option>
+    <option value="رسول الله ﷺ">رسول الله ﷺ</option>
+    <option value="الإمام علي (ع)">الإمام علي (ع)</option>
+    <option value="الإمام الصادق (ع)">الإمام الصادق (ع)</option>
+  </select>
+  <button id="showFavsBtn">عرض المفضلات ❤️</button>
+  <button id="showAllBtn" style="display:none;">عرض الكل 📋</button>
+</div>
+
+<div id="hadithList">...جارٍ تحميل الأحاديث</div>
+
+<script>
+const hadithList = document.getElementById('hadithList');
+const searchInput = document.getElementById('searchInput');
+const categoryFilter = document.getElementById('categoryFilter');
+const madhhabFilter = document.getElementById('madhhabFilter');
+const narratorFilter = document.getElementById('narratorFilter');
+const showFavsBtn = document.getElementById('showFavsBtn');
+const showAllBtn = document.getElementById('showAllBtn');
+
+let allHadiths = [];
+let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+
+fetch('data.json')
+  .then(response => {
+    if (!response.ok) throw new Error('HTTP error ' + response.status);
+    return response.json();
+  })
+  .then(data => {
+    allHadiths = data;
+    displayHadiths(allHadiths);
+  })
+  .catch(error => {
+    hadithList.innerHTML = `<p style="color:red;">خطأ: ${error.message}</p>`;
+  });
+
+function displayHadiths(hadiths){
+  hadithList.innerHTML = "";
+  if(hadiths.length === 0){
+    hadithList.innerHTML = "<p>❌ لا توجد نتائج</p>";
+    return;
+  }
+  hadiths.forEach(h => {
+    const card = document.createElement("div");
+    card.className = "hadith";
+    card.innerHTML = `
+      <button class="fav-btn ${favorites.includes(h.id) ? "favorited" : ""}" data-id="${h.id}">❤️</button>
+      <span class="category">${h.category || "غير محدد"}</span>
+      <span class="madhhab">${h.madhhab || "غير محدد"}</span>
+      <span class="narrator-tag">${h.narrator || "غير معروف"}</span>
+      <div class="text">${h.text}</div>
+      <div class="source">📚 المصدر: ${h.source || "غير معروف"}</div>
+    `;
+    hadithList.appendChild(card);
+  });
+
+  document.querySelectorAll(".fav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = parseInt(btn.getAttribute("data-id"));
+      if(favorites.includes(id)){
+        favorites = favorites.filter(f => f !== id);
+        btn.classList.remove("favorited");
+      } else {
+        favorites.push(id);
+        btn.classList.add("favorited");
+      }
+      localStorage.setItem("favorites", JSON.stringify(favorites));
+    });
+  });
+}
+
+function filterHadiths(){
+  let filtered = allHadiths.filter(h =>
+    h.text.includes(searchInput.value) &&
+    (categoryFilter.value === "" || h.category === categoryFilter.value) &&
+    (madhhabFilter.value === "" || h.madhhab === madhhabFilter.value) &&
+    (narratorFilter.value === "" || h.narrator === narratorFilter.value)
+  );
+  displayHadiths(filtered);
+}
+
+searchInput.addEventListener("input", filterHadiths);
+categoryFilter.addEventListener("change", filterHadiths);
+madhhabFilter.addEventListener("change", filterHadiths);
+narratorFilter.addEventListener("change", filterHadiths);
+
+showFavsBtn.addEventListener("click", () => {
+  let favHadiths = allHadiths.filter(h => favorites.includes(h.id));
+  displayHadiths(favHadiths);
+  showFavsBtn.style.display = "none";
+  showAllBtn.style.display = "inline-block";
+});
+
+showAllBtn.addEventListener("click", () => {
+  displayHadiths(allHadiths);
+  showAllBtn.style.display = "none";
+  showFavsBtn.style.display = "inline-block";
+});
+</script>
+
+</body>
+</html>
